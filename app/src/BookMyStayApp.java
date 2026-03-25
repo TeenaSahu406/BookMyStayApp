@@ -1,96 +1,80 @@
+import java.io.*;
 import java.util.*;
 
-// Reservation request
-class Reservation {
+// Reservation class
+class Reservation implements Serializable {
+    String reservationId;
     String guestName;
     String roomType;
 
-    Reservation(String guestName, String roomType) {
+    Reservation(String reservationId, String guestName, String roomType) {
+        this.reservationId = reservationId;
         this.guestName = guestName;
         this.roomType = roomType;
     }
-}
 
-// Shared inventory (thread-safe)
-class RoomInventory {
-
-    HashMap<String, Integer> rooms = new HashMap<>();
-
-    RoomInventory() {
-        rooms.put("Single Room", 2);
-        rooms.put("Double Room", 1);
-        rooms.put("Suite Room", 1);
-    }
-
-    // synchronized critical section
-    public synchronized void allocateRoom(Reservation r) {
-
-        int available = rooms.getOrDefault(r.roomType, 0);
-
-        if (available > 0) {
-            rooms.put(r.roomType, available - 1);
-            System.out.println(Thread.currentThread().getName() +
-                    " confirmed booking for " + r.guestName +
-                    " (" + r.roomType + ")");
-        } else {
-            System.out.println(Thread.currentThread().getName() +
-                    " failed booking for " + r.guestName +
-                    " (" + r.roomType + ") - No rooms available");
-        }
+    void display() {
+        System.out.println(reservationId + " | " + guestName + " | " + roomType);
     }
 }
 
-// Booking processor thread
-class BookingProcessor extends Thread {
+// System state (inventory + booking history)
+class SystemState implements Serializable {
+    HashMap<String, Integer> inventory;
+    List<Reservation> bookings;
 
-    Queue<Reservation> queue;
-    RoomInventory inventory;
-
-    BookingProcessor(Queue<Reservation> queue, RoomInventory inventory) {
-        this.queue = queue;
+    SystemState(HashMap<String, Integer> inventory, List<Reservation> bookings) {
         this.inventory = inventory;
-    }
-
-    public void run() {
-
-        while (true) {
-
-            Reservation r;
-
-            synchronized (queue) {
-                if (queue.isEmpty()) {
-                    break;
-                }
-                r = queue.poll();
-            }
-
-            inventory.allocateRoom(r);
-        }
+        this.bookings = bookings;
     }
 }
 
 public class BookMyStayApp {
 
+    static final String FILE_NAME = "hotel_data.ser";
+
     public static void main(String[] args) {
 
-        Queue<Reservation> bookingQueue = new LinkedList<>();
+        HashMap<String, Integer> inventory = new HashMap<>();
+        List<Reservation> bookingHistory = new ArrayList<>();
 
-        bookingQueue.add(new Reservation("Arushi", "Single Room"));
-        bookingQueue.add(new Reservation("Teena", "Single Room"));
-        bookingQueue.add(new Reservation("Aadi", "Single Room"));
-        bookingQueue.add(new Reservation("Rahul", "Suite Room"));
+        inventory.put("Single Room", 2);
+        inventory.put("Double Room", 1);
+        inventory.put("Suite Room", 1);
 
-        RoomInventory inventory = new RoomInventory();
+        bookingHistory.add(new Reservation("RES101", "Arushi", "Single Room"));
+        bookingHistory.add(new Reservation("RES102", "Teena", "Suite Room"));
 
         System.out.println("Book My Stay - Hotel Booking System \n");
 
-        BookingProcessor t1 = new BookingProcessor(bookingQueue, inventory);
-        BookingProcessor t2 = new BookingProcessor(bookingQueue, inventory);
+        // Save state (serialization)
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(FILE_NAME));
+            out.writeObject(new SystemState(inventory, bookingHistory));
+            out.close();
+            System.out.println("System state saved successfully.\n");
+        } catch (IOException e) {
+            System.out.println("Error saving data.");
+        }
 
-        t1.setName("Thread-1");
-        t2.setName("Thread-2");
+        // Load state (deserialization)
+        try {
+            ObjectInputStream in = new ObjectInputStream(new FileInputStream(FILE_NAME));
+            SystemState state = (SystemState) in.readObject();
+            in.close();
 
-        t1.start();
-        t2.start();
+            System.out.println("Recovered Inventory:");
+            for (String type : state.inventory.keySet()) {
+                System.out.println(type + " : " + state.inventory.get(type));
+            }
+
+            System.out.println("\nRecovered Booking History:");
+            for (Reservation r : state.bookings) {
+                r.display();
+            }
+
+        } catch (Exception e) {
+            System.out.println("No previous data found. Starting fresh.");
+        }
     }
 }
