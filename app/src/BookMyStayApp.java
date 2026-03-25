@@ -1,32 +1,18 @@
-import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
 
-// Room class (domain model)
-class Room {
-    String type;
-    double price;
+// Reservation class (represents booking request)
+class Reservation {
+    String guestName;
+    String roomType;
 
-    Room(String type, double price) {
-        this.type = type;
-        this.price = price;
+    Reservation(String guestName, String roomType) {
+        this.guestName = guestName;
+        this.roomType = roomType;
     }
 
     void display() {
-        System.out.println("Room Type: " + type + " | Price: " + price);
-    }
-}
-
-// Inventory class (state holder)
-class RoomInventory {
-    HashMap<String, Integer> inventory = new HashMap<>();
-
-    RoomInventory() {
-        inventory.put("Single Room", 5);
-        inventory.put("Double Room", 0);
-        inventory.put("Suite Room", 2);
-    }
-
-    int getAvailability(String roomType) {
-        return inventory.getOrDefault(roomType, 0);
+        System.out.println("Guest: " + guestName + " | Requested Room: " + roomType);
     }
 }
 
@@ -34,30 +20,20 @@ public class BookMyStayApp {
 
     public static void main(String[] args) {
 
-        RoomInventory inventory = new RoomInventory();
+        // Queue to store booking requests (FIFO)
+        Queue<Reservation> bookingQueue = new LinkedList<>();
 
-        Room single = new Room("Single Room", 2000);
-        Room doubleRoom = new Room("Double Room", 3500);
-        Room suite = new Room("Suite Room", 6000);
+        // Guest booking requests
+        bookingQueue.add(new Reservation("Arushi", "Single Room"));
+        bookingQueue.add(new Reservation("Teena", "Suite Room"));
+        bookingQueue.add(new Reservation("Aadi", "Double Room"));
 
         System.out.println("Book My Stay - Hotel Booking System \n");
-        System.out.println("Available Rooms:\n");
+        System.out.println("Booking Requests in Queue:\n");
 
-        if (inventory.getAvailability("Single Room") > 0) {
-            single.display();
-            System.out.println("Available: " + inventory.getAvailability("Single Room"));
-            System.out.println();
-        }
-
-        if (inventory.getAvailability("Double Room") > 0) {
-            doubleRoom.display();
-            System.out.println("Available: " + inventory.getAvailability("Double Room"));
-            System.out.println();
-        }
-
-        if (inventory.getAvailability("Suite Room") > 0) {
-            suite.display();
-            System.out.println("Available: " + inventory.getAvailability("Suite Room"));
+        // Display queue without processing allocation
+        for (Reservation r : bookingQueue) {
+            r.display();
         }
     }
 }
