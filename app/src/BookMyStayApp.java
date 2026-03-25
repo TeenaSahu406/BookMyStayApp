@@ -1,7 +1,5 @@
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
-// Reservation class (represents booking request)
 class Reservation {
     String guestName;
     String roomType;
@@ -10,30 +8,70 @@ class Reservation {
         this.guestName = guestName;
         this.roomType = roomType;
     }
+}
 
-    void display() {
-        System.out.println("Guest: " + guestName + " | Requested Room: " + roomType);
+class RoomInventory {
+
+    HashMap<String, Integer> inventory = new HashMap<>();
+
+    RoomInventory() {
+        inventory.put("Single Room", 2);
+        inventory.put("Double Room", 1);
+        inventory.put("Suite Room", 1);
+    }
+
+    int getAvailability(String type) {
+        return inventory.getOrDefault(type, 0);
+    }
+
+    void reduceRoom(String type) {
+        inventory.put(type, inventory.get(type) - 1);
     }
 }
 
-public class BookMyStayApp {
+public class UseCase6RoomAllocationService {
 
     public static void main(String[] args) {
 
-        // Queue to store booking requests (FIFO)
         Queue<Reservation> bookingQueue = new LinkedList<>();
 
-        // Guest booking requests
         bookingQueue.add(new Reservation("Arushi", "Single Room"));
         bookingQueue.add(new Reservation("Teena", "Suite Room"));
         bookingQueue.add(new Reservation("Aadi", "Double Room"));
 
-        System.out.println("Book My Stay - Hotel Booking System \n");
-        System.out.println("Booking Requests in Queue:\n");
+        RoomInventory inventory = new RoomInventory();
 
-        // Display queue without processing allocation
-        for (Reservation r : bookingQueue) {
-            r.display();
+        Set<String> allocatedRooms = new HashSet<>();
+        HashMap<String, Set<String>> roomAllocation = new HashMap<>();
+
+        int roomIdCounter = 1;
+
+        System.out.println("Book My Stay - Hotel Booking System \n");
+
+        while (!bookingQueue.isEmpty()) {
+
+            Reservation r = bookingQueue.poll();
+
+            if (inventory.getAvailability(r.roomType) > 0) {
+
+                String roomId = r.roomType.substring(0,2).toUpperCase() + roomIdCounter++;
+                allocatedRooms.add(roomId);
+
+                roomAllocation.putIfAbsent(r.roomType, new HashSet<>());
+                roomAllocation.get(r.roomType).add(roomId);
+
+                inventory.reduceRoom(r.roomType);
+
+                System.out.println("Reservation Confirmed");
+                System.out.println("Guest: " + r.guestName);
+                System.out.println("Room Type: " + r.roomType);
+                System.out.println("Room ID: " + roomId);
+                System.out.println();
+            } 
+            else {
+                System.out.println("No rooms available for " + r.guestName + " (" + r.roomType + ")");
+                System.out.println();
+            }
         }
     }
 }
