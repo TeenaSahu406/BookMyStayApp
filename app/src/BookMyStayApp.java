@@ -1,35 +1,70 @@
 import java.util.*;
 
-// Reservation class
+// Reservation request
 class Reservation {
-    String reservationId;
+    String guestName;
     String roomType;
 
-    Reservation(String reservationId, String roomType) {
-        this.reservationId = reservationId;
+    Reservation(String guestName, String roomType) {
+        this.guestName = guestName;
         this.roomType = roomType;
     }
 }
 
-// Inventory service
+// Shared inventory (thread-safe)
 class RoomInventory {
 
-    HashMap<String, Integer> inventory = new HashMap<>();
+    HashMap<String, Integer> rooms = new HashMap<>();
 
     RoomInventory() {
-        inventory.put("Single Room", 1);
-        inventory.put("Double Room", 1);
-        inventory.put("Suite Room", 1);
+        rooms.put("Single Room", 2);
+        rooms.put("Double Room", 1);
+        rooms.put("Suite Room", 1);
     }
 
-    void increaseRoom(String roomType) {
-        inventory.put(roomType, inventory.get(roomType) + 1);
+    // synchronized critical section
+    public synchronized void allocateRoom(Reservation r) {
+
+        int available = rooms.getOrDefault(r.roomType, 0);
+
+        if (available > 0) {
+            rooms.put(r.roomType, available - 1);
+            System.out.println(Thread.currentThread().getName() +
+                    " confirmed booking for " + r.guestName +
+                    " (" + r.roomType + ")");
+        } else {
+            System.out.println(Thread.currentThread().getName() +
+                    " failed booking for " + r.guestName +
+                    " (" + r.roomType + ") - No rooms available");
+        }
+    }
+}
+
+// Booking processor thread
+class BookingProcessor extends Thread {
+
+    Queue<Reservation> queue;
+    RoomInventory inventory;
+
+    BookingProcessor(Queue<Reservation> queue, RoomInventory inventory) {
+        this.queue = queue;
+        this.inventory = inventory;
     }
 
-    void showInventory() {
-        System.out.println("Current Inventory:");
-        for (String type : inventory.keySet()) {
-            System.out.println(type + " : " + inventory.get(type));
+    public void run() {
+
+        while (true) {
+
+            Reservation r;
+
+            synchronized (queue) {
+                if (queue.isEmpty()) {
+                    break;
+                }
+                r = queue.poll();
+            }
+
+            inventory.allocateRoom(r);
         }
     }
 }
@@ -38,40 +73,24 @@ public class BookMyStayApp {
 
     public static void main(String[] args) {
 
+        Queue<Reservation> bookingQueue = new LinkedList<>();
+
+        bookingQueue.add(new Reservation("Arushi", "Single Room"));
+        bookingQueue.add(new Reservation("Teena", "Single Room"));
+        bookingQueue.add(new Reservation("Aadi", "Single Room"));
+        bookingQueue.add(new Reservation("Rahul", "Suite Room"));
+
         RoomInventory inventory = new RoomInventory();
-
-        // confirmed bookings
-        HashMap<String, Reservation> bookings = new HashMap<>();
-
-        bookings.put("RES101", new Reservation("RES101", "Single Room"));
-        bookings.put("RES102", new Reservation("RES102", "Double Room"));
-
-        // stack for rollback (released rooms)
-        Stack<String> rollbackStack = new Stack<>();
 
         System.out.println("Book My Stay - Hotel Booking System \n");
 
-        String cancelId = "RES101";
+        BookingProcessor t1 = new BookingProcessor(bookingQueue, inventory);
+        BookingProcessor t2 = new BookingProcessor(bookingQueue, inventory);
 
-        if (bookings.containsKey(cancelId)) {
+        t1.setName("Thread-1");
+        t2.setName("Thread-2");
 
-            Reservation r = bookings.get(cancelId);
-
-            rollbackStack.push(r.roomType);
-
-            inventory.increaseRoom(r.roomType);
-
-            bookings.remove(cancelId);
-
-            System.out.println("Booking Cancelled Successfully");
-            System.out.println("Reservation ID: " + cancelId);
-            System.out.println("Room Type Released: " + rollbackStack.peek());
-            System.out.println();
-
-        } else {
-            System.out.println("Cancellation Failed: Reservation not found");
-        }
-
-        inventory.showInventory();
+        t1.start();
+        t2.start();
     }
 }
