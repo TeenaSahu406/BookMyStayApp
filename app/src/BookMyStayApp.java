@@ -1,12 +1,42 @@
 import java.util.*;
 
-class Service {
-    String name;
-    double price;
+// Reservation class
+class Reservation {
+    String reservationId;
+    String guestName;
+    String roomType;
 
-    Service(String name, double price) {
-        this.name = name;
-        this.price = price;
+    Reservation(String reservationId, String guestName, String roomType) {
+        this.reservationId = reservationId;
+        this.guestName = guestName;
+        this.roomType = roomType;
+    }
+
+    void display() {
+        System.out.println("Reservation ID: " + reservationId +
+                " | Guest: " + guestName +
+                " | Room Type: " + roomType);
+    }
+}
+
+// Booking History class
+class BookingHistory {
+
+    List<Reservation> history = new ArrayList<>();
+
+    void addReservation(Reservation r) {
+        history.add(r);
+    }
+
+    void showHistory() {
+        System.out.println("Booking History:\n");
+        for (Reservation r : history) {
+            r.display();
+        }
+    }
+
+    void generateReport() {
+        System.out.println("\nTotal Bookings: " + history.size());
     }
 }
 
@@ -14,36 +44,19 @@ public class BookMyStayApp {
 
     public static void main(String[] args) {
 
-        // Map to store reservation ID -> list of services
-        HashMap<String, List<Service>> addOnServices = new HashMap<>();
+        BookingHistory bookingHistory = new BookingHistory();
 
-        String reservationId = "RES101";
+        // confirmed reservations
+        bookingHistory.addReservation(new Reservation("RES101", "Arushi", "Single Room"));
+        bookingHistory.addReservation(new Reservation("RES102", "Teena", "Suite Room"));
+        bookingHistory.addReservation(new Reservation("RES103", "Aadi", "Double Room"));
 
-        // Creating services
-        Service breakfast = new Service("Breakfast", 500);
-        Service spa = new Service("Spa", 1500);
-        Service airportPickup = new Service("Airport Pickup", 800);
+        System.out.println("Book My Stay - Hotel Booking System \n");
 
-        // Add services to reservation
-        List<Service> services = new ArrayList<>();
-        services.add(breakfast);
-        services.add(spa);
-        services.add(airportPickup);
+        // show booking history
+        bookingHistory.showHistory();
 
-        addOnServices.put(reservationId, services);
-
-        // Display selected services
-        System.out.println("Book My Stay - Hotel Booking System v7.0\n");
-        System.out.println("Reservation ID: " + reservationId);
-        System.out.println("Selected Add-On Services:");
-
-        double totalCost = 0;
-
-        for (Service s : addOnServices.get(reservationId)) {
-            System.out.println("- " + s.name + " : " + s.price);
-            totalCost += s.price;
-        }
-
-        System.out.println("\nTotal Add-On Cost: " + totalCost);
+        // generate report
+        bookingHistory.generateReport();
     }
 }
